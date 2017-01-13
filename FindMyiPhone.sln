@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExampleConsoleApp", "ExampleConsoleApp\ExampleConsoleApp.csproj", "{7ECF555B-C669-4778-B104-2C5971D57FE2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FindMyiPhone", "FindMyiPhone\FindMyiPhone.csproj", "{49E18073-AD47-4651-84FC-1DF598A2822E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7ECF555B-C669-4778-B104-2C5971D57FE2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7ECF555B-C669-4778-B104-2C5971D57FE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7ECF555B-C669-4778-B104-2C5971D57FE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7ECF555B-C669-4778-B104-2C5971D57FE2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{49E18073-AD47-4651-84FC-1DF598A2822E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49E18073-AD47-4651-84FC-1DF598A2822E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49E18073-AD47-4651-84FC-1DF598A2822E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49E18073-AD47-4651-84FC-1DF598A2822E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
