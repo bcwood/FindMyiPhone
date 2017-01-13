@@ -95,6 +95,19 @@ namespace FindMyiPhone
             return null;
         }
 
+        public Location GetLocation(string deviceName)
+        {
+            dynamic device = this.GetDevice(deviceName);
+
+            return new Location
+            {
+                Latitude = device["location"]["latitude"],
+                Longitude = device["location"]["longitude"],
+                Accuracy = device["location"]["horizontalAccuracy"],
+                Timestamp = device["location"]["timeStamp"]
+            };
+        }
+
         public void PlaySound(string deviceName, string message)
         {
             dynamic device = this.GetDevice(deviceName);
