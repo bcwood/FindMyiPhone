@@ -32,7 +32,16 @@ namespace FindMyiPhone
             _webClient.Headers.Add("Content-Type", "text/plain");
 
             string loginParams = $"{{\"apple_id\":\"{appleId}\",\"password\":\"{password}\",\"extended_login\":false}}";
-            string loginResult = _webClient.PostDataToWebsite(ICLOUD_LOGIN_URL, loginParams);
+            string loginResult;
+
+            try
+            {
+                loginResult = _webClient.PostDataToWebsite(ICLOUD_LOGIN_URL, loginParams);
+            }
+            catch (System.Net.WebException)
+            {
+                throw new System.Security.SecurityException("Invalid username or password.");
+            }
 
             if (_webClient.ResponseHeaders.AllKeys.Any(k => k == "Set-Cookie"))
             {
@@ -44,7 +53,7 @@ namespace FindMyiPhone
             }
             else
             {
-                throw new System.Security.SecurityException("Invalid username and/or password.");
+                throw new System.Security.SecurityException("Invalid username or password.");
             }
         }
 
