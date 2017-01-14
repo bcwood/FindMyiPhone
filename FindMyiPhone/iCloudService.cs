@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Web.Script.Serialization;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace FindMyiPhone
 {
@@ -13,36 +14,33 @@ namespace FindMyiPhone
         private const string ICLOUD_INIT_CLIENT_URL = "/fmipservice/client/web/initClient";
         private const string ICLOUD_PLAY_SOUND_URL = "/fmipservice/client/web/playSound";
 
-        private readonly string _appleId;
-        private readonly string _password;
         private WebClient _webClient;
-        private string _iCloudDeviceUrl;
+        private string _iCloudBaseUrl;
 
         public iCloudService(string appleId, string password)
         {
-            _appleId = appleId;
-            _password = password;
+            this.Authenticate(appleId, password);
         }
 
-        private void Authenticate()
+        private void Authenticate(string appleId, string password)
         {
-            if (!string.IsNullOrEmpty(_iCloudDeviceUrl))
+            if (!string.IsNullOrEmpty(_iCloudBaseUrl))
                 return;
 
             _webClient = new WebClient();
             _webClient.Headers.Add("Origin", ICLOUD_URL);
             _webClient.Headers.Add("Content-Type", "text/plain");
 
-            string loginParams = $"{{\"apple_id\":\"{_appleId}\",\"password\":\"{_password}\",\"extended_login\":false}}";
+            string loginParams = $"{{\"apple_id\":\"{appleId}\",\"password\":\"{password}\",\"extended_login\":false}}";
             string loginResult = _webClient.PostDataToWebsite(ICLOUD_LOGIN_URL, loginParams);
 
             if (_webClient.ResponseHeaders.AllKeys.Any(k => k == "Set-Cookie"))
             {
                 _webClient.Headers.Add("Cookie", _webClient.ResponseHeaders["Set-Cookie"]);
 
-                var js = new JavaScriptSerializer();
-                var loginData = js.Deserialize(loginResult, typeof(object)) as dynamic;
-                _iCloudDeviceUrl = (string) loginData["webservices"]["findme"]["url"];
+                // get the base server url specific to this account (e.g. https://p03-fmipweb.icloud.com)
+                JObject loginObject = JObject.Parse(loginResult);
+                _iCloudBaseUrl = loginObject["webservices"]["findme"]["url"].ToString();
             }
             else
             {
@@ -50,75 +48,48 @@ namespace FindMyiPhone
             }
         }
 
-        public dynamic GetUserInfo()
+        private string InitClient()
         {
-            this.Authenticate();
+            string parameters = "{\"clientContext\":{\"appName\":\"iCloud Find (Web)\",\"appVersion\":\"2.0\"," +
+                                 "\"timezone\":\"US/Eastern\",\"inactiveTime\":2255,\"apiVersion\":\"3.0\",\"webStats\":\"0:15\"}}";
+            string result = _webClient.PostDataToWebsite(_iCloudBaseUrl + ICLOUD_INIT_CLIENT_URL, parameters);
 
-            string clientInitParams = "{\"clientContext\":{\"appName\":\"iCloud Find (Web)\",\"appVersion\":\"2.0\"," +
-                                       "\"timezone\":\"US/Eastern\",\"inactiveTime\":2255,\"apiVersion\":\"3.0\",\"webStats\":\"0:15\"}}";
-            string clientInitResult = _webClient.PostDataToWebsite(_iCloudDeviceUrl + ICLOUD_INIT_CLIENT_URL, clientInitParams);
-
-            if (clientInitResult.StartsWith("{\"userInfo\":"))
+            if (result.StartsWith("{\"userInfo\":"))
             {
-                var js = new JavaScriptSerializer();
-                return js.Deserialize(clientInitResult, typeof(object));
+                return result;
             }
-
-            return null;
-        }
-
-        public dynamic GetDevices()
-        {
-            dynamic userInfo = this.GetUserInfo();
-
-            if (userInfo != null)
-                return userInfo["content"];
             else
-                return null;
-        }
-
-        public dynamic GetDevice(string deviceName)
-        {
-            dynamic devices = this.GetDevices();
-
-            if (devices == null)
-                return null;
-
-            foreach (Dictionary<string, object> device in devices)
             {
-                if (device.Values.Contains(deviceName))
-                {
-                    return device;
-                }
+                throw new Exception($"Could not get User Info. Response from initClient: {result}");
             }
-
-            return null;
         }
 
-        public Location GetLocation(string deviceName)
+        public List<Device> GetDevices()
         {
-            dynamic device = this.GetDevice(deviceName);
+            string userInfo = this.InitClient();
 
-            return new Location
-            {
-                Latitude = device["location"]["latitude"],
-                Longitude = device["location"]["longitude"],
-                Accuracy = device["location"]["horizontalAccuracy"],
-                Timestamp = device["location"]["timeStamp"]
-            };
+            JObject userObject = JObject.Parse(userInfo);
+            IList<JToken> results = userObject["content"].Children().ToList();
+
+            return results.Select(r => JsonConvert.DeserializeObject<Device>(r.ToString())).ToList();
+        }
+
+        public Device GetDevice(string deviceName)
+        {
+            List<Device> devices = this.GetDevices();
+
+            return devices.FirstOrDefault(d => d.Name == deviceName);
         }
 
         public void PlaySound(string deviceName, string message)
         {
-            dynamic device = this.GetDevice(deviceName);
-
+            Device device = this.GetDevice(deviceName);
             if (device == null)
                 throw new ArgumentException($"Device \"{deviceName}\" was not found.");
 
-            string deviceId = device["id"];
-            string playSoundParams = $"{{\"device\":\"{deviceId}\",\"subject\":\"{message}\"}}";
+            string playSoundParams = $"{{\"device\":\"{device.Id}\",\"subject\":\"{message}\"}}";
 
-            _webClient.PostDataToWebsite(_iCloudDeviceUrl + ICLOUD_PLAY_SOUND_URL, playSoundParams);
+            _webClient.PostDataToWebsite(_iCloudBaseUrl + ICLOUD_PLAY_SOUND_URL, playSoundParams);
         }
     }
 }
